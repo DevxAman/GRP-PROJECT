@@ -23,6 +23,11 @@ const grievanceSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  trackingId: {
+    type: String,
+    unique: true,
+    sparse: true // Allows null values to not be considered for uniqueness
+  },
   attachments: [{
     filename: String,
     path: String,
@@ -36,6 +41,10 @@ const grievanceSchema = new mongoose.Schema({
   adminResponse: {
     type: String,
     default: ''
+  },
+  lastReminderSent: {
+    type: Date,
+    default: null
   },
   createdAt: {
     type: Date,

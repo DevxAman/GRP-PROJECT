@@ -1,97 +1,119 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { AuthContext } from '../pages/_app';
 
 const Navbar = () => {
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState('');
+  const [scrolled, setScrolled] = useState(false);
+  const { isLoggedIn, userRole, logout } = useContext(AuthContext);
 
   useEffect(() => {
-    // Check if the user is logged in
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('userRole');
-    setIsLoggedIn(!!token);
-    setUserRole(role || '');
+    // Add scroll event listener
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [router.pathname]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userRole');
-    setIsLoggedIn(false);
-    setUserRole('');
-    router.push('/');
+    logout();
+    setIsMobileMenuOpen(false);
   };
 
   const isAdmin = userRole === 'staff' || userRole === 'admin';
 
   return (
-    <nav className="bg-white shadow">
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
+      scrolled ? 'bg-white shadow-md py-2' : 'bg-white/95 backdrop-blur-sm py-4'
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="text-xl font-bold text-blue-600">
-                GRIEVANCE REDRESSAL PORTAL GNDEC
-              </Link>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center">
+            <Link href="/" className="flex items-center">
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent transition-all duration-300 hover:from-blue-700 hover:to-blue-900">
+                GNDEC
+              </span>
+              <span className="ml-2 text-lg font-semibold text-gray-700 bg-gradient-to-r from-gray-700 to-gray-600 bg-clip-text">
+                <span className="hidden md:inline">Grievance Portal</span>
+                <span className="inline md:hidden">Portal</span>
+              </span>
+            </Link>
+            <div className="hidden md:flex ml-10 space-x-8">
               <Link
                 href="/"
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                className={`relative px-2 py-1 text-sm font-medium transition-all duration-300 ease-in-out group ${
                   router.pathname === '/'
-                    ? 'border-blue-500 text-gray-900'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    ? 'text-blue-600'
+                    : 'text-gray-600 hover:text-blue-600'
                 }`}
               >
-                HOME
+                <span>HOME</span>
+                <span className={`absolute bottom-0 left-0 w-full h-0.5 transform scale-x-0 transition-transform duration-300 ${
+                  router.pathname === '/' ? 'bg-blue-600 scale-x-100' : 'bg-blue-600 group-hover:scale-x-100'
+                }`}></span>
               </Link>
               <Link
                 href="/file-grievance"
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                className={`relative px-2 py-1 text-sm font-medium transition-all duration-300 ease-in-out group ${
                   router.pathname === '/file-grievance'
-                    ? 'border-blue-500 text-gray-900'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    ? 'text-blue-600'
+                    : 'text-gray-600 hover:text-blue-600'
                 }`}
               >
-                FILE GRIEVANCE
+                <span>FILE GRIEVANCE</span>
+                <span className={`absolute bottom-0 left-0 w-full h-0.5 transform scale-x-0 transition-transform duration-300 ${
+                  router.pathname === '/file-grievance' ? 'bg-blue-600 scale-x-100' : 'bg-blue-600 group-hover:scale-x-100'
+                }`}></span>
               </Link>
               {isLoggedIn && (
                 <Link
                   href="/dashboard"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  className={`relative px-2 py-1 text-sm font-medium transition-all duration-300 ease-in-out group ${
                     router.pathname === '/dashboard'
-                      ? 'border-blue-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                      ? 'text-blue-600'
+                      : 'text-gray-600 hover:text-blue-600'
                   }`}
                 >
-                  DASHBOARD
+                  <span>DASHBOARD</span>
+                  <span className={`absolute bottom-0 left-0 w-full h-0.5 transform scale-x-0 transition-transform duration-300 ${
+                    router.pathname === '/dashboard' ? 'bg-blue-600 scale-x-100' : 'bg-blue-600 group-hover:scale-x-100'
+                  }`}></span>
                 </Link>
               )}
               {isAdmin && (
                 <Link
                   href="/admin/dashboard"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  className={`relative px-2 py-1 text-sm font-medium transition-all duration-300 ease-in-out group ${
                     router.pathname === '/admin/dashboard'
-                      ? 'border-blue-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                      ? 'text-blue-600'
+                      : 'text-gray-600 hover:text-blue-600'
                   }`}
                 >
-                  ADMIN
+                  <span>ADMIN</span>
+                  <span className={`absolute bottom-0 left-0 w-full h-0.5 transform scale-x-0 transition-transform duration-300 ${
+                    router.pathname === '/admin/dashboard' ? 'bg-blue-600 scale-x-100' : 'bg-blue-600 group-hover:scale-x-100'
+                  }`}></span>
                 </Link>
               )}
             </div>
           </div>
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
+          <div className="hidden md:flex items-center space-x-4">
             {isLoggedIn ? (
               <div className="flex items-center space-x-4">
                 <Link
                   href="/profile"
-                  className={`inline-flex items-center text-sm font-medium ${
+                  className={`flex items-center text-sm font-medium transition-colors duration-300 ${
                     router.pathname === '/profile'
                       ? 'text-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
+                      : 'text-gray-600 hover:text-blue-600'
                   }`}
                 >
                   <svg 
@@ -112,7 +134,7 @@ const Navbar = () => {
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-300 hover:from-red-600 hover:to-red-700 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   LOGOUT
                 </button>
@@ -121,136 +143,157 @@ const Navbar = () => {
               <div className="flex items-center space-x-4">
                 <Link
                   href="/login"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-2 rounded-md text-sm font-medium transition-all duration-300 hover:from-blue-600 hover:to-blue-700 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   LOGIN
                 </Link>
                 <Link
                   href="/signup"
-                  className="bg-gray-100 text-gray-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  className="border border-gray-300 text-gray-700 px-5 py-2 rounded-md text-sm font-medium transition-all duration-300 hover:bg-gray-100 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                 >
                   SIGN UP
                 </Link>
               </div>
             )}
           </div>
-          <div className="-mr-2 flex items-center sm:hidden">
+          <div className="md:hidden flex items-center">
             <button
               type="button"
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors duration-300"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               <span className="sr-only">Open main menu</span>
-              <svg
-                className="block h-6 w-6"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
+              {!isMobileMenuOpen ? (
+                <svg
+                  className="block h-6 w-6"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="block h-6 w-6"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              )}
             </button>
           </div>
         </div>
       </div>
 
       {/* Mobile menu */}
-      {isMobileMenuOpen && (
-        <div className="sm:hidden">
-          <div className="pt-2 pb-3 space-y-1">
+      <div className={`md:hidden transition-all duration-300 ease-in-out overflow-hidden ${
+        isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+      }`}>
+        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white shadow-lg rounded-b-lg">
+          <Link
+            href="/"
+            className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300 ${
+              router.pathname === '/'
+                ? 'bg-blue-50 text-blue-700'
+                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-700'
+            }`}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            HOME
+          </Link>
+          <Link
+            href="/file-grievance"
+            className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300 ${
+              router.pathname === '/file-grievance'
+                ? 'bg-blue-50 text-blue-700'
+                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-700'
+            }`}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            FILE GRIEVANCE
+          </Link>
+          {isLoggedIn && (
             <Link
-              href="/"
-              className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                router.pathname === '/'
-                  ? 'bg-blue-50 border-blue-500 text-blue-700'
-                  : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+              href="/dashboard"
+              className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300 ${
+                router.pathname === '/dashboard'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-blue-700'
               }`}
+              onClick={() => setIsMobileMenuOpen(false)}
             >
-              HOME
+              DASHBOARD
             </Link>
+          )}
+          {isAdmin && (
             <Link
-              href="/file-grievance"
-              className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                router.pathname === '/file-grievance'
-                  ? 'bg-blue-50 border-blue-500 text-blue-700'
-                  : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+              href="/admin/dashboard"
+              className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300 ${
+                router.pathname === '/admin/dashboard'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-blue-700'
               }`}
+              onClick={() => setIsMobileMenuOpen(false)}
             >
-              FILE GRIEVANCE
+              ADMIN DASHBOARD
             </Link>
-            {isLoggedIn && (
+          )}
+          {isLoggedIn ? (
+            <>
               <Link
-                href="/dashboard"
-                className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                  router.pathname === '/dashboard'
-                    ? 'bg-blue-50 border-blue-500 text-blue-700'
-                    : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+                href="/profile"
+                className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300 ${
+                  router.pathname === '/profile'
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-blue-700'
                 }`}
+                onClick={() => setIsMobileMenuOpen(false)}
               >
-                DASHBOARD
+                PROFILE
               </Link>
-            )}
-            {isAdmin && (
+              <button
+                onClick={handleLogout}
+                className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50 transition-colors duration-300"
+              >
+                LOGOUT
+              </button>
+            </>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 mt-4 px-3 py-2">
               <Link
-                href="/admin/dashboard"
-                className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                  router.pathname === '/admin/dashboard'
-                    ? 'bg-blue-50 border-blue-500 text-blue-700'
-                    : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-                }`}
+                href="/login"
+                className="text-center bg-blue-600 text-white py-2 rounded-md text-base font-medium hover:bg-blue-700 transition-colors duration-300"
+                onClick={() => setIsMobileMenuOpen(false)}
               >
-                ADMIN DASHBOARD
+                LOGIN
               </Link>
-            )}
-          </div>
-          <div className="pt-4 pb-3 border-t border-gray-200">
-            <div className="mt-3 space-y-1">
-              {isLoggedIn ? (
-                <>
-                  <Link
-                    href="/profile"
-                    className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                      router.pathname === '/profile'
-                        ? 'bg-blue-50 border-blue-500 text-blue-700'
-                        : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-                    }`}
-                  >
-                    PROFILE
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-base font-medium text-red-600 hover:bg-gray-100"
-                  >
-                    LOGOUT
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/login"
-                    className="block px-4 py-2 text-base font-medium text-blue-600 hover:bg-gray-100"
-                  >
-                    LOGIN
-                  </Link>
-                  <Link
-                    href="/signup"
-                    className="block px-4 py-2 text-base font-medium text-gray-800 hover:bg-gray-100"
-                  >
-                    SIGN UP
-                  </Link>
-                </>
-              )}
+              <Link
+                href="/signup"
+                className="text-center bg-gray-100 text-gray-800 py-2 rounded-md text-base font-medium hover:bg-gray-200 transition-colors duration-300"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                SIGN UP
+              </Link>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </nav>
   );
 };

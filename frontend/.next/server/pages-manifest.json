@@ -1,10 +1,10 @@
 {
   "/_app": "pages/_app.js",
-  "/_document": "pages/_document.js",
   "/_error": "pages/_error.js",
-  "/dashboard": "pages/dashboard.js",
-  "/login": "pages/login.js",
-  "/signup": "pages/signup.js",
+  "/_document": "pages/_document.js",
+  "/": "pages/index.js",
   "/profile": "pages/profile.js",
-  "/file-grievance": "pages/file-grievance.js"
+  "/file-grievance": "pages/file-grievance.js",
+  "/track-grievance": "pages/track-grievance.js",
+  "/login": "pages/login.js"
 }

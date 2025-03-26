@@ -1,10 +1,1 @@
-{
-  "/_app": "pages/_app.js",
-  "/_error": "pages/_error.js",
-  "/_document": "pages/_document.js",
-  "/": "pages/index.js",
-  "/profile": "pages/profile.js",
-  "/file-grievance": "pages/file-grievance.js",
-  "/track-grievance": "pages/track-grievance.js",
-  "/login": "pages/login.js"
-}
+{"/admin/dashboard":"pages/admin/dashboard.html","/_error":"pages/_error.js","/file-grievance":"pages/file-grievance.html","/dashboard":"pages/dashboard.html","/grievance/[id]":"pages/grievance/[id].html","/":"pages/index.html","/login":"pages/login.html","/profile":"pages/profile.html","/send-reminder":"pages/send-reminder.html","/signup":"pages/signup.html","/track-grievance":"pages/track-grievance.html","/_app":"pages/_app.js","/_document":"pages/_document.js","/404":"pages/404.html"}

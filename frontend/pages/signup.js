@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Head from 'next/head';
+import { fetchAPI } from './_app';
 
 export default function Signup() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function Signup() {
     role: 'student'
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -22,24 +24,24 @@ export default function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     // Validate form
     if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
       setError('All fields are required');
+      setLoading(false);
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
+      setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetchAPI('/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
@@ -57,6 +59,8 @@ export default function Signup() {
       }
     } catch (err) {
       setError('An error occurred during registration');
+    } finally {
+      setLoading(false);
     }
   };
 

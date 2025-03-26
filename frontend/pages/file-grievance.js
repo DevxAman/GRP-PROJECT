@@ -46,7 +46,7 @@ export default function FileGrievance() {
       if (isLoggedIn) {
         try {
           const token = localStorage.getItem('token');
-          const response = await fetch('http://localhost:5000/api/users/profile', {
+          const response = await fetch('/api/users/profile', {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -140,7 +140,7 @@ export default function FileGrievance() {
       };
 
       console.log('Sending request to backend...');
-      const response = await fetch('http://localhost:5000/api/grievances', {
+      const response = await fetch('/api/grievances', {
         method: 'POST',
         body: formDataToSend,
         headers

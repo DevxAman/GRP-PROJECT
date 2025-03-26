@@ -63,7 +63,7 @@ export default function TrackGrievance() {
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
       
       try {
-        const response = await fetch('http://localhost:5000/api/grievances/my-grievances', {
+        const response = await fetch('/api/grievances/my-grievances', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -166,7 +166,7 @@ export default function TrackGrievance() {
         throw new Error('Authentication token not found. Please log in again.');
       }
 
-      const response = await fetch(`http://localhost:5000/api/grievances/track/${trackingId}`, {
+      const response = await fetch(`/api/grievances/track/${trackingId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -255,7 +255,7 @@ export default function TrackGrievance() {
         throw new Error('Authentication token not found. Please log in again.');
       }
       
-      const response = await fetch('http://localhost:5000/api/grievances/send-reminder', {
+      const response = await fetch('/api/grievances/send-reminder', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

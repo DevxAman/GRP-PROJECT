@@ -34,7 +34,7 @@ export default function AdminDashboard() {
   const fetchAllGrievances = async (token) => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/admin/grievances', {
+      const response = await fetch('/api/admin/grievances', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

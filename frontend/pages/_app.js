@@ -5,6 +5,31 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Head from 'next/head';
 
+// API utility to standardize API calls
+export const API_BASE_URL = '/api';
+
+export const fetchAPI = async (endpoint, options = {}) => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+  };
+  
+  // Add token to headers if available
+  if (localStorage && localStorage.getItem('token')) {
+    defaultHeaders['Authorization'] = `Bearer ${localStorage.getItem('token')}`;
+  }
+  
+  const fetchOptions = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
+  };
+  
+  return fetch(url, fetchOptions);
+};
+
 // Create auth context for global state management
 export const AuthContext = createContext({
   isLoggedIn: false,

@@ -27,7 +27,7 @@ export default function GrievanceDetail() {
   const fetchGrievance = async (token, grievanceId) => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/grievances/${grievanceId}`, {
+      const response = await fetch(`/api/grievances/${grievanceId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -51,7 +51,7 @@ export default function GrievanceDetail() {
   const handleStatusChange = async (newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/grievances/${id}/status`, {
+      const response = await fetch(`/api/grievances/${id}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -78,7 +78,7 @@ export default function GrievanceDetail() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/grievances/${id}/comments`, {
+      const response = await fetch(`/api/grievances/${id}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -240,7 +240,7 @@ export default function GrievanceDetail() {
                               <span className="ml-2 flex-1 w-0 truncate">{attachment.originalname || attachment}</span>
                             </div>
                             <div className="ml-4 flex-shrink-0">
-                              <a href={`http://localhost:5000/api/grievances/${grievance._id}/attachments/${attachment.filename || attachment}`} download className="font-medium text-blue-600 hover:text-blue-500">
+                              <a href={`/api/grievances/${grievance._id}/attachments/${attachment.filename || attachment}`} download className="font-medium text-blue-600 hover:text-blue-500">
                                 Download
                               </a>
                             </div>

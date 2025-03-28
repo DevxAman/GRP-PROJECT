@@ -21,7 +21,7 @@ export default function Dashboard() {
 
   const fetchGrievances = async (token) => {
     try {
-      const response = await fetch('/api/grievances', {
+      const response = await fetch('http://localhost:5000/api/grievances', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

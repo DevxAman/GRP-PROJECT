@@ -19,6 +19,7 @@ export default function TrackGrievance() {
   const [isSendingReminder, setIsSendingReminder] = useState(false);
   const [redirectingToLogin, setRedirectingToLogin] = useState(false);
   const [permissionError, setPermissionError] = useState(false);
+  const [grievancesError, setGrievancesError] = useState(null);
 
   // Status steps for the progress bar
   const statusSteps = ['pending', 'in-progress', 'resolved', 'rejected'];
@@ -53,17 +54,19 @@ export default function TrackGrievance() {
   const fetchUserGrievances = async () => {
     try {
       setLoadingUserGrievances(true);
-      setError('');
+      setGrievancesError(null); // Clear any previous errors
       
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
 
       // Create a controller for timeout functionality
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
       
       try {
-        const response = await fetch('/api/grievances/my-grievances', {
+        const response = await fetch('http://localhost:5000/api/grievances/my-grievances', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -85,13 +88,13 @@ export default function TrackGrievance() {
             }
           } else {
             console.error('Unexpected data format:', data);
-            setError('Received unexpected data format from server');
+            setGrievancesError('Received unexpected data format from server');
           }
         } else {
           if (response.status === 401) {
             // Authentication error
             console.error('Authentication error while fetching grievances');
-            setError('Your session has expired. Please log in again.');
+            setGrievancesError('Your session has expired. Please log in again.');
             setTimeout(() => {
               localStorage.removeItem('token');
               router.push('/login?redirect=/track-grievance');
@@ -109,7 +112,7 @@ export default function TrackGrievance() {
             }
             
             console.error('Failed to fetch user grievances:', errorMessage);
-            setError(errorMessage);
+            setGrievancesError(errorMessage);
           }
         }
       } catch (fetchErr) {
@@ -117,22 +120,24 @@ export default function TrackGrievance() {
         
         if (fetchErr.name === 'AbortError') {
           console.error('Request timed out while fetching grievances');
-          setError('Request timed out. Please try again later.');
+          setGrievancesError('Request timed out. The server took too long to respond. Please try again later.');
         } else {
           console.error('Error fetching user grievances:', fetchErr);
-          setError('Failed to fetch grievances. Please check your connection and try again.');
+          setGrievancesError('Failed to fetch grievances. Please check your connection and try again.');
         }
       }
     } catch (err) {
       console.error('Outer error fetching user grievances:', err);
-      setError('An unexpected error occurred while fetching grievances.');
+      setGrievancesError('An unexpected error occurred while fetching grievances.');
     } finally {
       setLoadingUserGrievances(false);
     }
   };
 
-  // Add a retry function for grievance fetching
+  // Update the retry function to work with the new error handling
   const retryFetchGrievances = () => {
+    console.log('Retrying to fetch grievances...');
+    setGrievancesError(null); // Clear the error state
     fetchUserGrievances();
   };
 
@@ -166,7 +171,7 @@ export default function TrackGrievance() {
         throw new Error('Authentication token not found. Please log in again.');
       }
 
-      const response = await fetch(`/api/grievances/track/${trackingId}`, {
+      const response = await fetch(`http://localhost:5000/api/grievances/track/${trackingId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -255,7 +260,7 @@ export default function TrackGrievance() {
         throw new Error('Authentication token not found. Please log in again.');
       }
       
-      const response = await fetch('/api/grievances/send-reminder', {
+      const response = await fetch('http://localhost:5000/api/grievances/send-reminder', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -631,11 +636,11 @@ export default function TrackGrievance() {
               </div>
 
               {/* Show the summary dashboard if we have grievances and no error */}
-              {!loadingUserGrievances && userGrievances.length > 0 && !error && (
+              {!loadingUserGrievances && userGrievances.length > 0 && !grievancesError && (
                 <GrievanceSummary grievances={userGrievances} />
               )}
 
-              {error && error.includes('Failed to fetch grievances') && (
+              {grievancesError && (
                 <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between">
                     <div className="flex items-center mb-3 sm:mb-0">
@@ -644,7 +649,7 @@ export default function TrackGrievance() {
                       </svg>
                       <div>
                         <h3 className="text-sm font-medium text-red-800">Error Loading Grievances</h3>
-                        <p className="text-sm text-red-700 mt-1">{error}</p>
+                        <p className="text-sm text-red-700 mt-1">{grievancesError}</p>
                       </div>
                     </div>
                     <button 
@@ -722,7 +727,7 @@ export default function TrackGrievance() {
                     </tbody>
                   </table>
                 </div>
-              ) : !error ? (
+              ) : !grievancesError ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                   <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

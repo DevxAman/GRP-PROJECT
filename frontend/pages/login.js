@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Head from 'next/head';
@@ -11,18 +11,39 @@ export default function Login() {
     password: ''
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useContext(AuthContext);
+
+  // Check for success message from URL query params (after email verification or registration)
+  useEffect(() => {
+    if (router.query.success) {
+      setSuccess(router.query.success);
+    }
+  }, [router.query]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
+  const validateEmail = (email) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@gndec\.ac\.in$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setIsLoading(true);
+
+    // Validate email format
+    if (!validateEmail(formData.email)) {
+      setError('You must use a valid GNDEC email address (@gndec.ac.in)');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       console.log('Attempting login with:', formData.email);
@@ -39,22 +60,61 @@ export default function Login() {
 
       if (response.ok) {
         // Use the global auth context to handle login
-        console.log('Login successful, user role:', data.role);
-        login(data.token, data.role);
+        console.log('Login successful, user role:', data.user.role);
+        login(data.token, data.user.role);
         
         // Redirect to appropriate dashboard
-        if (data.role === 'admin' || data.role === 'staff') {
+        if (data.user.role === 'admin') {
           router.push('/admin/dashboard');
         } else {
           router.push('/dashboard');
         }
       } else {
         console.error('Login failed:', data);
-        setError(data.message || 'Invalid email or password');
+        
+        // Handle specific error cases
+        if (data.message.includes('email') && data.message.includes('verify')) {
+          setError('Please verify your email before logging in. Check your inbox for a verification link.');
+        } else if (data.message.includes('phone') && data.message.includes('verify')) {
+          setError('Please verify your phone number before logging in.');
+        } else {
+          setError(data.message || 'Invalid email or password');
+        }
       }
     } catch (err) {
       console.error('Login error:', err);
       setError('An error occurred while trying to log in. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!validateEmail(formData.email)) {
+      setError('Please enter your GNDEC email address first');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: formData.email })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess('Verification email sent. Please check your inbox.');
+        setError('');
+      } else {
+        setError(data.message || 'Failed to resend verification email');
+      }
+    } catch (err) {
+      setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -79,11 +139,18 @@ export default function Login() {
               </Link>
             </p>
           </div>
+
+          {success && (
+            <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-md" role="alert">
+              <p>{success}</p>
+            </div>
+          )}
+
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="rounded-md shadow-sm -space-y-px">
               <div>
                 <label htmlFor="email" className="sr-only">
-                  Email address
+                  GNDEC Email address
                 </label>
                 <input
                   id="email"
@@ -92,7 +159,7 @@ export default function Login() {
                   autoComplete="email"
                   required
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Email address"
+                  placeholder="GNDEC Email address (@gndec.ac.in)"
                   value={formData.email}
                   onChange={handleChange}
                 />
@@ -118,6 +185,15 @@ export default function Login() {
             {error && (
               <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
                 <p>{error}</p>
+                {error.includes('verify your email') && (
+                  <button 
+                    type="button" 
+                    onClick={handleResendVerification}
+                    className="mt-2 text-sm font-medium text-red-700 underline hover:text-red-800"
+                  >
+                    Resend verification email
+                  </button>
+                )}
               </div>
             )}
 
@@ -146,6 +222,12 @@ export default function Login() {
                   </>
                 )}
               </button>
+            </div>
+            
+            <div className="text-sm text-center">
+              <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+                Forgot your password?
+              </Link>
             </div>
           </form>
         </div>

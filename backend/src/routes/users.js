@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
+const { generateOTP, sendOTP } = require('../utils/notificationService');
 
 // Verify token endpoint
 router.get('/verify-token', async (req, res) => {
@@ -97,6 +98,96 @@ router.put('/profile', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Error updating profile:', error);
     res.status(500).json({ message: 'Error updating profile', error: error.message });
+  }
+});
+
+// Send OTP for phone verification
+router.post('/send-otp', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    
+    // Validate phone number
+    if (!/^[0-9]{10}$/.test(phone)) {
+      return res.status(400).json({ message: 'Invalid phone number format' });
+    }
+
+    // Check if phone number matches user's profile
+    const user = await User.findOne({ phone });
+    if (!user) {
+      return res.status(404).json({ message: 'Phone number not found in user profile' });
+    }
+
+    // Generate and save OTP
+    const otp = generateOTP();
+    user.phoneVerificationOTP = otp;
+    user.phoneVerificationExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save();
+
+    // Send OTP via email
+    const otpSent = await sendOTP(user.email, otp);
+    if (!otpSent) {
+      return res.status(500).json({ message: 'Failed to send OTP' });
+    }
+
+    res.json({ message: 'OTP sent successfully' });
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Verify OTP
+router.post('/verify-otp', async (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+
+    const user = await User.findOne({ 
+      phone,
+      phoneVerificationOTP: otp,
+      phoneVerificationExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Update verification status
+    user.isPhoneVerified = true;
+    user.phoneVerificationOTP = undefined;
+    user.phoneVerificationExpires = undefined;
+    await user.save();
+
+    res.json({ message: 'Phone number verified successfully' });
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update user profile with phone number
+router.put('/profile', requireAuth, async (req, res) => {
+  try {
+    const { phone } = req.body;
+    
+    // Validate phone number
+    if (!/^[0-9]{10}$/.test(phone)) {
+      return res.status(400).json({ message: 'Invalid phone number format' });
+    }
+
+    // Check if phone number is already in use
+    const existingUser = await User.findOne({ phone });
+    if (existingUser && existingUser._id.toString() !== req.user._id.toString()) {
+      return res.status(400).json({ message: 'Phone number already in use' });
+    }
+
+    // Update user profile
+    req.user.phone = phone;
+    await req.user.save();
+
+    res.json({ message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

@@ -2,7 +2,7 @@ import { useState, useContext, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { AuthContext, fetchAPI } from './_app';
+import { AuthContext } from './_app';
 
 export default function SendReminder() {
   const router = useRouter();
@@ -29,15 +29,27 @@ export default function SendReminder() {
   }, [isLoggedIn, router.query]);
 
   const fetchPendingGrievances = async () => {
-    setLoading(true);
+    setLoadingGrievances(true);
     try {
-      const response = await fetchAPI('/grievances/my-pending-grievances');
-      const data = await response.json();
-      setPendingGrievances(data);
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const response = await fetch('http://localhost:5000/api/grievances/my-pending-grievances', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPendingGrievances(data);
+      } else {
+        console.error('Failed to fetch pending grievances');
+      }
     } catch (err) {
       console.error('Error fetching pending grievances:', err);
     } finally {
-      setLoading(false);
+      setLoadingGrievances(false);
     }
   };
 
@@ -49,17 +61,28 @@ export default function SendReminder() {
       setError('');
       setSelectedGrievance(null);
 
-      const response = await fetchAPI(`/grievances/check/${id}`);
-      const data = await response.json();
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       
-      if (data.status !== 'Pending' && data.status !== 'In Progress') {
-        setError(`This grievance is marked as "${data.status}" and doesn't need a reminder.`);
-        return;
+      const response = await fetch(`http://localhost:5000/api/grievances/check/${id}`, {
+        headers
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.status !== 'Pending' && data.status !== 'In Progress') {
+          setError(`This grievance is marked as "${data.status}" and doesn't need a reminder.`);
+          return;
+        }
+        
+        setSelectedGrievance(data);
+        // Pre-populate reminder message
+        setMessage(`Regarding my grievance (${id}): I would like to request an update on the status of my grievance submitted on ${formatDate(data.createdAt)}. Thank you.`);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || 'Failed to find grievance with the provided tracking ID');
       }
-      
-      setSelectedGrievance(data);
-      // Pre-populate reminder message
-      setMessage(`Regarding my grievance (${id}): I would like to request an update on the status of my grievance submitted on ${formatDate(data.createdAt)}. Thank you.`);
     } catch (err) {
       setError('An error occurred while checking the grievance');
       console.error('Check grievance error:', err);
@@ -86,12 +109,16 @@ export default function SendReminder() {
       setError('');
       setSuccess('');
 
-      const response = await fetchAPI('/grievances/send-reminder', {
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      };
+      
+      const response = await fetch('http://localhost:5000/api/grievances/send-reminder', {
         method: 'POST',
-        body: JSON.stringify({
-          trackingId,
-          message
-        })
+        headers,
+        body: JSON.stringify({ trackingId, message }),
       });
       
       if (response.ok) {

@@ -77,18 +77,18 @@ export default function Home() {
   const testimonials = [
     {
       quote: "I had an issue with my lab equipment, and it was resolved within 3 days after filing my grievance. The system works great!",
-      author: "Manpreet Singh",
-      role: "3rd Year, CSE"
+      author: "PQR",
+      role: "PQR Year, PQR Branch"
     },
     {
       quote: "The scholarship reimbursement was delayed for months. After reporting through the portal, it was processed within a week.",
-      author: "Anjali Sharma",
-      role: "2nd Year, ECE"
+      author: "ABC",
+      role: "ABC Year, ABC Branch"
     },
     {
       quote: "Had a concern about attendance marking. The grievance portal made it easy to get my issue addressed by the right department.",
-      author: "Rahul Verma",
-      role: "4th Year, ME"
+      author: "xyz",
+      role: "XYZ Year, XYZ Branch"
     }
   ];
 
@@ -298,7 +298,7 @@ export default function Home() {
           <div className="lg:text-center mb-8">
             <h2 className="text-base text-blue-600 font-semibold tracking-wide uppercase">Testimonials</h2>
             <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-              Success Stories
+              XYZ FEEDBACKS
             </p>
           </div>
 

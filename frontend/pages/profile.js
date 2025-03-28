@@ -50,7 +50,7 @@ export default function Profile() {
         
         // First verify if the token is valid
         try {
-          const verifyResponse = await fetch('/api/users/verify-token', {
+          const verifyResponse = await fetch('http://localhost:5000/api/users/verify-token', {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -115,7 +115,7 @@ export default function Profile() {
       try {
         // Try to ping the server first to see if it's available
         try {
-          const pingResponse = await fetch('/api/users/ping', {
+          const pingResponse = await fetch('http://localhost:5000/api/users/ping', {
             method: 'GET',
             signal: controller.signal,
             cache: 'no-store'
@@ -131,7 +131,7 @@ export default function Profile() {
         }
         
         // Now try the actual profile request
-        const response = await fetch('/api/users/profile', {
+        const response = await fetch('http://localhost:5000/api/users/profile', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -270,7 +270,7 @@ export default function Profile() {
       }
 
       console.log('Sending update request with data:', updateData);
-      const response = await fetch('/api/users/profile', {
+      const response = await fetch('http://localhost:5000/api/users/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

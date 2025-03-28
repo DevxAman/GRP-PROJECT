@@ -19,10 +19,7 @@ const auth = async (req, res, next) => {
 
     try {
       // Verify the token
-      const decoded = jwt.verify(
-        token, 
-        process.env.JWT_SECRET || 'your-super-secret-key-change-this-in-production'
-      );
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
       // Find the user by ID
       const user = await User.findById(decoded.userId);
@@ -63,4 +60,48 @@ const requireAuth = (req, res, next) => {
   next();
 };
 
-module.exports = { auth, requireAuth }; 
+/**
+ * Requires verified email
+ * To be used after the auth and requireAuth middleware
+ * Returns 403 if the user's email is not verified
+ */
+const requireVerifiedEmail = (req, res, next) => {
+  if (!req.user.isEmailVerified) {
+    return res.status(403).json({ message: 'Email verification required' });
+  }
+  next();
+};
+
+/**
+ * Requires verified phone
+ * To be used after the auth and requireAuth middleware
+ * Returns 403 if the user's phone is not verified
+ */
+const requireVerifiedPhone = (req, res, next) => {
+  if (!req.user.isPhoneVerified) {
+    return res.status(403).json({ message: 'Phone verification required' });
+  }
+  next();
+};
+
+/**
+ * Requires full verification
+ * Combines email and phone verification checks
+ */
+const requireFullVerification = (req, res, next) => {
+  if (!req.user.isEmailVerified) {
+    return res.status(403).json({ message: 'Email verification required' });
+  }
+  if (!req.user.isPhoneVerified) {
+    return res.status(403).json({ message: 'Phone verification required' });
+  }
+  next();
+};
+
+module.exports = { 
+  auth, 
+  requireAuth, 
+  requireVerifiedEmail, 
+  requireVerifiedPhone, 
+  requireFullVerification 
+}; 

@@ -1,0 +1,49 @@
+services:
+  # Backend API Service
+  - type: web
+    name: grievance-portal-api
+    env: node
+    region: singapore # Choose a region close to your users
+    plan: free # Adjust based on your needs (free/starter/etc.)
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: JWT_SECRET
+        generateValue: true # Generate a secure random value
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: CORS_ORIGIN
+        value: # Fill with frontend URL after deploying it
+      - key: UPLOAD_PATH
+        value: ./uploads
+      - key: SMTP_HOST
+        value: smtp.gndec.ac.in
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_SECURE
+        value: false
+      - key: MONGODB_URI
+        sync: false # This will be manually set from Render dashboard
+      - key: WEBMAIL_USER
+        sync: false # This will be manually set from Render dashboard
+      - key: WEBMAIL_PASSWORD
+        sync: false # This will be manually set from Render dashboard
+      - key: FRONTEND_URL
+        sync: false # This will be manually set from Render dashboard
+    disk:
+      name: grievance-uploads
+      mountPath: /opt/render/project/src/backend/uploads
+      sizeGB: 1
+
+# Instructions:
+# 1. After deploying your backend, get its URL and set it in NEXT_PUBLIC_API_URL in your frontend
+# 2. After deploying your frontend, get its URL and set it in both FRONTEND_URL and CORS_ORIGIN in your backend
+# 3. Create a MongoDB Atlas database and set MONGODB_URI in the backend environment
+# 4. Set your GNDEC webmail credentials in WEBMAIL_USER and WEBMAIL_PASSWORD
+#
+# NOTE: Frontend should be deployed separately to Vercel for optimal performance. 

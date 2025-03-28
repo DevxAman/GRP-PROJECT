@@ -9,14 +9,12 @@ export default function FileGrievance() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    year: '',
-    universityRollNumber: '',
-    branch: '',
-    mobileNumber: '',
-    type: '',
+    phone: '',
+    otp: '',
+    category: '',
     subject: '',
-    title: '',
-    description: ''
+    description: '',
+    attachments: []
   });
   const [files, setFiles] = useState([]);
   const [error, setError] = useState('');
@@ -24,6 +22,9 @@ export default function FileGrievance() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1);
   const [redirectingToLogin, setRedirectingToLogin] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpError, setOtpError] = useState('');
 
   // Check if user is logged in
   useEffect(() => {
@@ -59,11 +60,16 @@ export default function FileGrievance() {
               ...prevData,
               name: userData.name || '',
               email: userData.email || '',
-              universityRollNumber: userData.universityRollNumber || '',
-              branch: userData.branch || '',
-              mobileNumber: userData.mobileNumber || '',
-              year: userData.year?.toString() || ''
+              phone: userData.phone || '', // Use the verified phone number
+              universityRollNumber: userData.studentDetails?.universityRollNumber || '',
+              branch: userData.studentDetails?.branch || '',
+              year: userData.studentDetails?.year?.toString() || ''
             }));
+            
+            // If user has a verified phone, set OTP as verified
+            if (userData.isPhoneVerified) {
+              setOtpVerified(true);
+            }
           }
         } catch (err) {
           console.error('Error fetching user profile:', err);
@@ -109,6 +115,27 @@ export default function FileGrievance() {
       return;
     }
     
+    // Final validation before submission
+    // Check all required fields from all steps
+    const allRequiredFields = [
+      'name', 'email', 'phone', 'category', 'subject', 'description'
+    ];
+    
+    const missingFields = allRequiredFields.filter(
+      field => !formData[field] || formData[field].trim() === ''
+    );
+    
+    if (missingFields.length > 0) {
+      setError(`Missing required fields: ${missingFields.join(', ')}`);
+      return;
+    }
+    
+    // Ensure the phone is verified
+    if (!otpVerified) {
+      setError('Your phone number must be verified. Please verify your phone number in your profile first.');
+      return;
+    }
+    
     setError('');
     setSuccess('');
     setIsSubmitting(true);
@@ -119,8 +146,10 @@ export default function FileGrievance() {
       
       // Append all form fields
       Object.entries(formData).forEach(([key, value]) => {
-        formDataToSend.append(key, value);
-        console.log(`Appending field: ${key} = ${value}`);
+        if (value) {
+          formDataToSend.append(key, value);
+          console.log(`Appending field: ${key} = ${value}`);
+        }
       });
 
       // Append files
@@ -140,43 +169,78 @@ export default function FileGrievance() {
       };
 
       console.log('Sending request to backend...');
-      const response = await fetch('/api/grievances', {
-        method: 'POST',
-        body: formDataToSend,
-        headers
-      });
-
-      console.log('Response status:', response.status);
-      const data = await response.json();
-      console.log('Response data:', data);
-
-      if (response.ok) {
-        setSuccess(`Grievance filed successfully! Your tracking ID is: ${data.trackingId}`);
-        setFormData({
-          name: '',
-          email: '',
-          year: '',
-          universityRollNumber: '',
-          branch: '',
-          mobileNumber: '',
-          type: '',
-          subject: '',
-          title: '',
-          description: ''
+      
+      // Set a timeout for the request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
+      
+      try {
+        const response = await fetch('/api/grievances', {
+          method: 'POST',
+          body: formDataToSend,
+          headers,
+          signal: controller.signal
         });
-        setFiles([]);
-        setStep(1);
-        // Redirect to dashboard after 2 seconds
-        setTimeout(() => {
-          router.push('/track-grievance?trackingId=' + data.trackingId);
-        }, 2000);
-      } else {
-        setError(data.message || 'Failed to file grievance');
-        console.error('Error response:', data);
+        
+        clearTimeout(timeoutId);
+        console.log('Response status:', response.status);
+        
+        // First try to parse as JSON
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          data = await response.json();
+        } else {
+          // If not JSON, get text
+          const text = await response.text();
+          try {
+            // Try to parse text as JSON anyway
+            data = JSON.parse(text);
+          } catch (e) {
+            // If parsing fails, create an object with the text
+            data = { message: text || 'Unknown error occurred' };
+          }
+        }
+        
+        console.log('Response data:', data);
+
+        if (response.ok) {
+          setSuccess(`Grievance filed successfully! Your tracking ID is: ${data.trackingId}`);
+          setFormData({
+            name: '',
+            email: '',
+            phone: '',
+            category: '',
+            subject: '',
+            description: '',
+            attachments: []
+          });
+          setFiles([]);
+          setStep(1);
+          // Redirect to dashboard after 2 seconds
+          setTimeout(() => {
+            router.push('/track-grievance?trackingId=' + data.trackingId);
+          }, 2000);
+        } else {
+          if (data.message.includes('verification')) {
+            setError('You need to verify both your email and phone number before filing a grievance');
+          } else {
+            setError(data.message || 'Failed to file grievance');
+          }
+          console.error('Error response:', data);
+        }
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        if (fetchErr.name === 'AbortError') {
+          console.error('Request timed out');
+          setError('Request timed out. The server took too long to respond. Please try again later.');
+        } else {
+          throw fetchErr; // Re-throw for outer catch
+        }
       }
     } catch (err) {
       console.error('Submission error:', err);
-      setError('An error occurred while filing the grievance. Please try again.');
+      setError('An error occurred while filing the grievance: ' + (err.message || 'Unknown error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -185,23 +249,139 @@ export default function FileGrievance() {
   const nextStep = () => {
     const requiredFields = {
       1: ['name', 'email', 'year', 'universityRollNumber', 'branch', 'mobileNumber'],
-      2: ['type', 'subject', 'title']
+      2: ['type', 'subject', 'title', 'description']
     }[step];
 
-    const isValid = requiredFields.every(field => formData[field].trim() !== '');
-    
+    let isValid = true;
+    let missingFields = [];
+
+    // Check each required field
+    requiredFields.forEach(field => {
+      if (!formData[field] || formData[field].trim() === '') {
+        isValid = false;
+        missingFields.push(field);
+      }
+    });
+
     if (!isValid) {
-      setError('Please fill all required fields before proceeding');
+      setError(`Please fill all required fields before proceeding: ${missingFields.join(', ')}`);
       return;
+    }
+    
+    // Additional validation for specific fields
+    if (step === 1) {
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setError('Please enter a valid email address');
+        return;
+      }
+      
+      // Validate mobile number
+      const mobileRegex = /^\d{10}$/;
+      if (!mobileRegex.test(formData.mobileNumber)) {
+        setError('Please enter a valid 10-digit mobile number');
+        return;
+      }
+    }
+    
+    if (step === 2) {
+      // Ensure description has minimum length
+      if (formData.description.length < 20) {
+        setError('Description must be at least 20 characters long');
+        return;
+      }
     }
     
     setError('');
     setStep(step + 1);
+    
+    // Scroll to top of form when changing steps
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const prevStep = () => {
     setError('');
     setStep(step - 1);
+  };
+
+  // Add phone validation function
+  const validatePhone = (phone) => {
+    const phoneRegex = /^[0-9]{10}$/;
+    return phoneRegex.test(phone);
+  };
+
+  // Add OTP verification function
+  const handleSendOTP = async () => {
+    if (!validatePhone(formData.phone)) {
+      setError('Please enter a valid 10-digit phone number');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/users/send-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phone: formData.phone }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send OTP');
+      }
+
+      setOtpSent(true);
+      setError('');
+    } catch (error) {
+      setError('Failed to send OTP. Please try again.');
+    }
+  };
+
+  // Add OTP verification handler
+  const handleVerifyOTP = async () => {
+    try {
+      const response = await fetch('/api/users/verify-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          phone: formData.phone,
+          otp: formData.otp 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Invalid OTP');
+      }
+
+      setOtpVerified(true);
+      setOtpError('');
+    } catch (error) {
+      setOtpError('Invalid OTP. Please try again.');
+    }
+  };
+
+  // Update the form validation
+  const validateStep = (step) => {
+    switch (step) {
+      case 1:
+        if (!formData.name || !formData.email || !formData.phone) {
+          setError('Please fill in all required fields');
+          return false;
+        }
+        if (!validatePhone(formData.phone)) {
+          setError('Please enter a valid 10-digit phone number');
+          return false;
+        }
+        if (!otpVerified) {
+          setError('Please verify your phone number with OTP');
+          return false;
+        }
+        return true;
+      // ... rest of the validation cases ...
+    }
   };
 
   // Render login required message if not logged in
@@ -445,6 +625,27 @@ export default function FileGrievance() {
                             </svg>
                           </div>
                         </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Phone Number (Verified)</label>
+                        <div className="mt-1 flex relative">
+                          <input
+                            type="tel"
+                            value={formData.phone}
+                            readOnly={true}
+                            className="block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            required
+                          />
+                          {otpVerified && (
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                              <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">This is your verified phone number from your profile</p>
                       </div>
                     </div>
                   </div>

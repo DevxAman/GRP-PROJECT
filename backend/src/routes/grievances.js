@@ -4,7 +4,8 @@ const path = require('path');
 const Grievance = require('../models/Grievance');
 const User = require('../models/User');
 const fs = require('fs');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireFullVerification } = require('../middleware/auth');
+const { sendGrievanceNotification } = require('../utils/notificationService');
 
 const router = express.Router();
 
@@ -76,25 +77,53 @@ const generateTrackingID = async () => {
   return trackingId;
 };
 
-// Create new grievance
-router.post('/', requireAuth, uploadMiddleware, async (req, res) => {
+// Create a new grievance - requires full verification
+router.post('/', requireAuth, requireFullVerification, uploadMiddleware, async (req, res) => {
   try {
     console.log('Received grievance submission request');
     console.log('Request body:', req.body);
     console.log('Files:', req.files);
     
     // Map 'category' to 'type' for backwards compatibility
-    const category = req.body.category || req.body.type;
+    const type = req.body.type || req.body.category || '';
 
     const {
       subject,
-      description
+      title,
+      description,
+      name,
+      email,
+      year,
+      universityRollNumber,
+      branch,
+      mobileNumber
     } = req.body;
 
-    // Validate required fields
-    if (!category || !subject || !description) {
-      console.error('Missing required fields');
-      return res.status(400).json({ message: 'Please fill all required fields' });
+    // Validate required fields with detailed error messages
+    const requiredFields = {
+      'Type/Category': type,
+      'Subject': subject,
+      'Description': description,
+      'Name': name,
+      'Email': email,
+      'Year': year,
+      'University Roll Number': universityRollNumber,
+      'Branch': branch,
+      'Mobile Number': mobileNumber
+    };
+
+    const missingFields = [];
+    for (const [fieldName, value] of Object.entries(requiredFields)) {
+      if (!value || value.trim() === '') {
+        missingFields.push(fieldName);
+      }
+    }
+
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+      return res.status(400).json({ 
+        message: `Please fill all required fields. Missing: ${missingFields.join(', ')}` 
+      });
     }
 
     // Use the authenticated user
@@ -105,23 +134,41 @@ router.post('/', requireAuth, uploadMiddleware, async (req, res) => {
     const trackingId = await generateTrackingID();
 
     // Create grievance
-    console.log('Creating new grievance with category:', category);
+    console.log('Creating new grievance with type:', type);
     const grievance = new Grievance({
       user: user._id,
-      type: category.toLowerCase(), // Ensure lowercase to match enum
+      name,
+      email,
+      year,
+      universityRollNumber,
+      branch,
+      mobileNumber: user.phone || mobileNumber, // Use verified phone from user profile if available
+      type: type.toLowerCase(), // Ensure lowercase to match enum
       subject,
-      title: subject, // Use subject as title if title is missing
+      title: title || subject, // Use subject as title if title is missing
       description,
       trackingId,
       attachments: req.files?.map((file) => ({
         filename: file.filename,
         path: file.path,
+        originalname: file.originalname,
         mimetype: file.mimetype
       })) || []
     });
 
     await grievance.save();
     console.log('Grievance created successfully:', grievance._id);
+
+    // Send email notification if utility is available
+    if (typeof sendGrievanceNotification === 'function') {
+      try {
+        await sendGrievanceNotification(email, trackingId, 'submitted');
+        console.log('Notification email sent to:', email);
+      } catch (emailError) {
+        console.error('Error sending email notification:', emailError);
+        // Continue anyway - don't fail the request if just the email fails
+      }
+    }
 
     res.status(201).json({
       message: 'Grievance filed successfully',
@@ -130,11 +177,8 @@ router.post('/', requireAuth, uploadMiddleware, async (req, res) => {
       createdAt: grievance.createdAt
     });
   } catch (error) {
-    console.error('Error creating grievance:', error);
-    res.status(500).json({
-      message: 'Error creating grievance',
-      error: error.message
-    });
+    console.error('Error submitting grievance:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
